@@ -1,14 +1,35 @@
-class Location {
-	constructor(x, y, zone, type){
+
+
+
+class MapLocation<basetypeName extends anyLocationTypeName = anyLocationTypeName> {
+    x: number;
+    y: number;
+    zone: Zone;
+    baseType: LocationType<basetypeName>;
+    creature: Creature | null;
+    priorCompletionData: any[];
+    completions: number;
+    entered: number;
+    remainingEnter: number;
+    remainingPresent: number;
+    enterDuration: number;
+    presentDuration: number;
+    temporaryPresent: Action | null;
+    wither: number;
+    water: any;
+    usedTime: any;
+	constructor(x: number, y: number, zone: Zone , type: basetypeName){
 		this.x = x;
 		this.y = y;
 		this.zone = zone;
 		this.baseType = getLocationType(type);
-		let creature = getCreature(type);
+		const creature = getCreature(type);
 		if (creature) {
 			this.creature = new Creature(creature, x, y);
 			creatures.push(this.creature);
-		}
+		} else {
+            this.creature = null
+        }
 		this.priorCompletionData = Array(realms.length).fill(0);
 		this.completions = 0;
 		this.entered = 0;
@@ -25,14 +46,16 @@ class Location {
 		return this.priorCompletionData[currentRealm];
 	}
 
-	get type() {
-		if (currentRealm != 2) return this.baseType;
-		if (verdantMapping[this.baseType.symbol]){
-			return getLocationType(getLocationTypeBySymbol(verdantMapping[this.baseType.symbol]));
-		}
+	get type(): LocationType<anyLocationTypeName> {
+		if (currentRealm === 2){
+            const symbol = verdantMapping[this.baseType.symbol];
+            if (symbol){
+                return getLocationType(getLocationTypeBySymbol(symbol) || '') || this.baseType;
+            }
+        }
 		return this.baseType;
 	}
-	
+
 	start() {
 		if (clones[currentClone].x == this.x && clones[currentClone].y == this.y){
 			if (this.type.presentAction){
@@ -45,7 +68,7 @@ class Location {
 			this.presentDuration = this.remainingPresent;
 			return this.remainingPresent;
 		}
-		let enterAction = this.type.getEnterAction(this.entered);
+		const enterAction = this.type.getEnterAction(this.entered);
 		if (!enterAction) return false;
 		clones[currentClone].walkTime = 0;
 		this.remainingEnter = enterAction.start(this.completions, this.priorCompletions, this.x, this.y);
@@ -55,16 +78,17 @@ class Location {
 		this.enterDuration = this.remainingEnter;
 		return this.remainingEnter;
 	}
-	
-	tick(time) {
-		let usedTime, percent;
+
+	tick(time: number) {
+		let usedTime; let percent;
 		if (clones[currentClone].x == this.x && clones[currentClone].y == this.y){
-			let skillDiv = (this.type.presentAction || this.temporaryPresent).getSkillDiv();
+            const action = (this.type.presentAction || this.temporaryPresent);
+			const skillDiv = action.getSkillDiv();
 			usedTime = Math.min(time / skillDiv, this.remainingPresent);
-			(this.type.presentAction || this.temporaryPresent).tick(usedTime, {x: this.x, y: this.y}, usedTime * skillDiv);
+			action.tick(usedTime, {x: this.x, y: this.y}, usedTime * skillDiv);
 			this.remainingPresent -= usedTime;
 			if (this.remainingPresent == 0){
-				if ((this.type.presentAction || this.temporaryPresent).complete(this.x, this.y)){
+				if (action.complete(this.x, this.y)){
 					// Something got taken away in the middle of completing this.
 					this.remainingPresent = 100;
 					this.usedTime = time;
@@ -87,7 +111,7 @@ class Location {
 			} else {
 				clones[currentClone].walkTime = 0;
 			}
-			let skillDiv = this.type.getEnterAction(this.entered).getSkillDiv();
+			const skillDiv = this.type.getEnterAction(this.entered).getSkillDiv();
 			usedTime = Math.min(time / skillDiv, this.remainingEnter);
 			this.type.getEnterAction(this.entered).tick(usedTime, this.creature, usedTime * skillDiv);
 			this.remainingEnter -= usedTime;
@@ -134,11 +158,11 @@ class Location {
 		this.water = this.type.startWater;
 	}
 
-	zoneTick(time) {
+	zoneTick(time:number) {
 		if (!this.water) return;
 		zones[currentZone].getAdjLocations(this.x, this.y).forEach(([tile, loc]) => {
 			if (!walkable.includes(tile) && !shrooms.includes(tile)) return;
-			let prev_level = Math.floor(loc.water * 10);
+			const prev_level = Math.floor(loc.water * 10);
 			// 1 water should add 0.04 water per second to each adjacent location.
 			loc.water = Math.min(Math.max(this.water, loc.water), loc.water + (this.water / 158 / (shrooms.includes(tile) ? 2 : 1)) ** 2 * time);
 			if (prev_level != Math.floor(loc.water * 10)){

@@ -1,7 +1,12 @@
 class BaseRoute {
+    zone: number;
+    requirements: any;
+    usedRoutes: any;
+    loadingFailed: boolean;
+    route: any;
 	constructor(){}
 
-	pickRoute(zone, route, actualRequirements = null, health = clones.map(c => 0)){
+	pickRoute(zone:number, route, actualRequirements = null, health = clones.map(c => 0)){
 		let routeOptions = zones[zone].sumRoute(route, actualRequirements, health);
 		if (zone == 0){
 			if (routeOptions.length == 0) return null;
@@ -52,11 +57,22 @@ class BaseRoute {
 }
 
 class Route extends BaseRoute {
-	constructor(x) {
+    x!: number;
+    y!: number;
+    realm!: number;
+    clonesLost!: number;
+    manaUsed!: number;
+    reachTime!: number;
+    progressBeforeReach!: number;
+    allDead!: boolean;
+    invalidateCost!: boolean;
+    totalTimeAvailable: any;
+    cloneHealth!: number[];
+	constructor(base: MapLocation | PropertiesOf<Route>) {
 		super();
-		if (x instanceof Location) {
-			this.x = x.x;
-			this.y = x.y;
+		if (base instanceof MapLocation) {
+			this.x = base.x;
+			this.y = base.y;
 			this.zone = currentZone;
 			this.realm = currentRealm;
 			let route = queues.map((r, i) => (clones[i].x == this.x && clones[i].y == this.y) ? queueToStringStripped(r) : queueToString(r));
@@ -79,11 +95,11 @@ class Route extends BaseRoute {
 
 			let mana = getStat("Mana");
 			let expectedMul = getAction("Collect Mana").getBaseDuration(this.realm);
-			let duration = mineManaRockCost(0, x.completions + x.priorCompletions, x.zone, this.x, this.y) * expectedMul;
+			let duration = mineManaRockCost(0, base.completions + base.priorCompletions, base.zone, this.x, this.y) * expectedMul;
 			this.manaUsed = +(mana.base - mana.current).toFixed(2);
 
 			this.reachTime = +(queueTime / 1000).toFixed(2);
-			this.progressBeforeReach = duration - x.remainingPresent / 1000 * expectedMul;
+			this.progressBeforeReach = duration - base.remainingPresent / 1000 * expectedMul;
 			this.requirements = zones[currentZone].startStuff.map(s => {
 				return {
 					"name": s.name,
@@ -91,10 +107,11 @@ class Route extends BaseRoute {
 				}
 			}).filter(s => s.count > 0);
 			this.allDead = false;
+            this.invalidateCost = false
 
 			return;
 		}
-		Object.assign(this, x);
+		Object.assign(this, base);
 	}
 
 	getRefineCost(relativeLevel = 0) {
@@ -133,7 +150,7 @@ class Route extends BaseRoute {
 		return times;
 	}
 
-	static updateBestRoute(location) {
+	static updateBestRoute(location: MapLocation) {
 		let cur = new Route(location);
 		let prev = Route.getBestRoute(location.x, location.y, currentZone);
 		let curEff = cur.estimateRefineManaLeft();
@@ -152,7 +169,7 @@ class Route extends BaseRoute {
 		return cur;
 	}
 
-	static getBestRoute(x, y, z) {
+	static getBestRoute(x: number, y: number, z: number) {
 		return routes.find(r => r.x == x && r.y == y && r.zone == z && r.realm == currentRealm);
 	}
 
@@ -160,7 +177,7 @@ class Route extends BaseRoute {
 		return ar;
 	}
 
-	static fromJSON(ar) {
+	static fromJSON(ar:PropertiesOf<Route>[]) {
 		ar = this.migrate(ar);
 		return ar.map(r => new Route(r));
 	}
@@ -168,8 +185,8 @@ class Route extends BaseRoute {
 	static loadBestRoute() {
 		let effs = routes.map(r => {
 			if (r.realm != currentRealm || r.allDead) return null;
-			return [r.estimateRefineManaLeft(), r];
-		}).filter(r => r !== null)
+			return [r.estimateRefineManaLeft(), r] as [number,Route];
+		}).filter((r):r is NonNullable<typeof r> =>  r !== null)
 		  .sort((a, b) => b[0] - a[0]);
 		for (let i = 0; i < effs.length; i++){
 			if (effs[i][1].loadRoute()) return;
@@ -181,34 +198,34 @@ class Route extends BaseRoute {
 	}
 
 	showOnLocationUI() {
-		document.querySelector("#location-route").hidden = false;
-		document.querySelector("#route-has-route").hidden = false;
-		document.querySelector("#route-not-visited").hidden = true;
+		document.querySelector<HTMLElement>("#location-route")!.hidden = false;
+		document.querySelector<HTMLElement>("#route-has-route")!.hidden = false;
+		document.querySelector<HTMLElement>("#route-not-visited")!.hidden = true;
 
-		document.querySelector("#route-best-time").innerText = this.reachTime;
-		document.querySelector("#route-best-mana-used").innerText = this.manaUsed;
-		document.querySelector("#route-best-clones-lost").innerText = this.clonesLost;
+		document.querySelector<HTMLElement>("#route-best-time")!.innerText = this.reachTime.toString();
+		document.querySelector<HTMLElement>("#route-best-mana-used")!.innerText = this.manaUsed.toString();
+		document.querySelector<HTMLElement>("#route-best-clones-lost")!.innerText = this.clonesLost.toString();
 
 		let est = this.estimateRefineManaLeft(true);
-		document.querySelector("#route-best-mana-left").innerText = est.toFixed(2);
-		document.querySelector("#route-best-unminable").hidden = est >= 0;
-		document.querySelector("#route-best-minable").hidden = est < 0;
+		document.querySelector<HTMLElement>("#route-best-mana-left")!.innerText = est.toFixed(2);
+		document.querySelector<HTMLElement>("#route-best-unminable")!.hidden = est >= 0;
+		document.querySelector<HTMLElement>("#route-best-minable")!.hidden = est < 0;
 		if (est > 0) {
 			let estTimes = this.estimateRefineTimes();
-			document.querySelector("#route-best-minable u").innerText = estTimes;
-			document.querySelector("#route-best-minable span").hidden = false;
+			document.querySelector<HTMLElement>("#route-best-minable u")!.innerText = estTimes.toString();
+			document.querySelector<HTMLElement>("#route-best-minable span")!.hidden = false;
 		}
-		document.querySelector("#route-best-invalidated").hidden = !this.invalidateCost;
+		document.querySelector<HTMLElement>("#route-best-invalidated")!.hidden = !this.invalidateCost;
 
-		document.querySelector("#x-loc").value = this.x;
-		document.querySelector("#y-loc").value = this.y;
+		document.querySelector<HTMLInputElement>("#x-loc")!.value = this.x.toString();
+		document.querySelector<HTMLInputElement>("#y-loc")!.value = this.y.toString();
 
-		displayStuff(document.querySelector("#route-requirements"), this);
+		displayStuff(document.querySelector<HTMLElement>("#route-requirements")!, this);
 
-		document.querySelector("#failed-route").style.display = this.loadingFailed ? "block" : "none";
-		document.querySelector("#dead-route").style.display = this.allDead ? "block" : "none";
+		document.querySelector<HTMLElement>("#failed-route")!.style.display = this.loadingFailed ? "block" : "none";
+		document.querySelector<HTMLElement>("#dead-route")!.style.display = this.allDead ? "block" : "none";
 
-		document.querySelector("#delete-route-button").onclick = this.deleteRoute.bind(this);
+		document.querySelector<HTMLElement>("#delete-route-button")!.onclick = this.deleteRoute.bind(this);
 	}
 
 	deleteRoute(){
@@ -307,4 +324,4 @@ function updateGrindStats(){
 	}
 }
 
-let routes = [];
+let routes:  Route[] = [];

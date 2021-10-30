@@ -15,7 +15,7 @@ function saveQueue(el){
 
 function saveAllQueues(){
 	queues.forEach(queue => {
-		savedQueues.push(queue.map(q => [q[0]]).filter(q => q[0] != "Q" && q[0] != "<"));
+		savedQueues.push(queue.map(q => q.actionID).filter(a => a != "Q" && a != "<"));
 		savedQueues[savedQueues.length - 1].icon = possibleActionIcons[0];
 		// Generate random colour.
 		savedQueues[savedQueues.length - 1].colour = '#'+Math.floor(Math.random()*16777215).toString(16);
@@ -136,13 +136,13 @@ function isDropTopHalf(event){
 function updateDropTarget() {
 	let targetChanged = newDropTarget !== oldDropTarget;
 	let halfChanged = newIsDropTopHalf !== oldIsDropTopHalf;
-	
+
 	if (oldDropTarget && targetChanged) {
 		let oldClasses = oldDropTarget.classList;
 		oldClasses.remove(oldIsDropTopHalf ? "drop-above" : "drop-below");
 		oldDropTarget = undefined;
 	}
-	
+
 	if (newDropTarget && (targetChanged || halfChanged)) {
 		let newClasses = newDropTarget.classList;
 		newClasses.add(newIsDropTopHalf ? "drop-above" : "drop-below");
@@ -181,10 +181,10 @@ function savedQueueMove(event, el){
 			}
 		}
 	}
-	
+
 	let oldQueue = savedQueues.splice(source, 1)[0];
 	savedQueues.splice(target, 0, oldQueue);
-	
+
 	let queueContainer = document.querySelector("#saved-queues-inner");
 	dragTarget.id = "";
 	queueContainer.insertBefore(dragTarget, queueContainer.children[source > target ? target : target+1]);

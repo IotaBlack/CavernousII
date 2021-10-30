@@ -1,6 +1,20 @@
 
-class Stuff {
-	constructor(name, icon, description, colour, count = 0, effect = null){
+
+type simpleStuffList = {
+    name: anyStuffName;
+    count: number;
+}[];
+
+class Stuff<stuffName extends string> {
+    name: stuffName;
+    icon: string;
+    description: string;
+    colour: string;
+    count: number;
+    node: HTMLElement | null;
+    min: number;
+
+	constructor(name:stuffName, icon:string, description:string, colour:string, count = 0, effect?: ((newCount:number)=>void)){
 		this.name = name;
 		this.icon = icon;
 		this.description = description;
@@ -13,7 +27,7 @@ class Stuff {
 		}
 	}
 
-	effect() {}
+	effect(newCount:number) {}
 
 	update(newCount = 0) {
 		if (!this.node) this.createNode();
@@ -22,27 +36,30 @@ class Stuff {
 		this.count = Math.round(this.count * 100) / 100;
 		this.effect(newCount);
 		// Check if the number is an integer - if it's not, display one decimal place.
-		this.node.innerText = writeNumber(this.count, Math.abs(Math.round(this.count) - this.count) < 0.01 ? 0 : 1);
+		this.node!.innerText = writeNumber(this.count, Math.abs(Math.round(this.count) - this.count) < 0.01 ? 0 : 1);
 		if (this.count > 0){
-			this.node.parentNode.style.display = "inline-block";
+			(this.node!.parentNode as HTMLElement).style.display = "inline-block";
 		}
 		this.min = Math.min(this.count, this.min);
 	}
-	
+
 	createNode() {
 		if (this.node) return;
 		let stuffTemplate = document.querySelector("#stuff-template");
-		let el = stuffTemplate.cloneNode(true);
+        if (stuffTemplate === null) {
+            throw new Error('No stuff template');
+        }
+		let el = stuffTemplate.cloneNode(true) as HTMLElement;
 		el.id = "stuff_" + this.name.replace(" ", "_");
-		el.querySelector(".name").innerHTML = this.name;
-		el.querySelector(".icon").innerHTML = this.icon;
-		el.querySelector(".description").innerHTML = this.description;
+		el.querySelector(".name")!.innerHTML = this.name;
+		el.querySelector(".icon")!.innerHTML = this.icon;
+		el.querySelector(".description")!.innerHTML = this.description;
 		el.style.color = setContrast(this.colour);
 		el.style.backgroundColor = this.colour;
-		document.querySelector("#stuff-inner").appendChild(el);
-		this.node = el.querySelector(".count");
+		document.querySelector("#stuff-inner")!.appendChild(el);
+		this.node = el.querySelector(".count")! as HTMLElement;
 	}
-	
+
 	resetMin() {
 		if (this.effect != null){
 			this.min = 0;
@@ -71,12 +88,13 @@ function calcCombatStats() {
 	clones.forEach(c => c.styleDamage());
 }
 
-function getStatBonus(name, amount){
+function getStatBonus(name:anyStatName, amount:number){
 	let stat = getStat(name);
-	return (mult) => stat.getBonus(amount * mult);
+	return (mult:number) => stat.getBonus(amount * mult);
 }
 
-let stuff = [
+type anyStuffName = typeof stuff[number]['name'];
+const stuff = [
 	new Stuff("Gold Nugget", "•", "This is probably pretty valuable.  Shiny!", "#ffd700", 0),
 	new Stuff("Salt", "⌂", "A pile of salt.  You're not hungry, so what's this good for?", "#ffffff", 0),
 	new Stuff("Iron Ore", "•", "A chunck of iron ore.  Not useful in its current form.", "#777777", 0),
@@ -97,36 +115,36 @@ let stuff = [
 	new Stuff("Iron Hammer", hammerSVG, "An iron hammer.  Gives +15 or +15% to Smithing (whichever is greater), and applies 1% of your Smithing skill to combat.", "#777777", 0, getStatBonus("Smithing", 15)),
 ];
 
-function setContrast(colour) {
-	darkness = (parseInt(colour.slice(1, 3), 16) * 299 + parseInt(colour.slice(3, 5), 16) * 587 + parseInt(colour.slice(5, 7), 16) * 114) / 1000;
+function setContrast(colour:string) {
+	const darkness = (parseInt(colour.slice(1, 3), 16) * 299 + parseInt(colour.slice(3, 5), 16) * 587 + parseInt(colour.slice(5, 7), 16) * 114) / 1000;
 	return darkness > 125 ? "#000000" : "#ffffff";
 }
 
-function setRGBContrast(colour) {
-	colour = [...colour.matchAll(/\d+/g)];
-	if (colour.length == 4) return "#000000";
-	darkness = (colour[0] * 299 + colour[1] * 587 + colour[2] * 114) / 1000;
+function setRGBContrast(colour:string) {
+	let colourComponents = [...colour.matchAll(/\d+/g)] as unknown as number[];
+	if (colourComponents.length == 4) return "#000000";
+	let darkness = (colourComponents[0] * 299 + colourComponents[1] * 587 + colourComponents[2] * 114) / 1000;
 	return darkness > 125 ? "#000000" : "#ffffff";
 }
 
-function getStuff(name) {
-	return stuff.find(a => a.name == name);
+function getStuff<T extends anyStuffName>(name:T) {
+	return stuff.find(a => a.name == name) as Stuff<T>;
 }
 
-function displayStuff(node, route){
-	function displaySingleThing(thing) {
-		let stuff;
-		return `<span style="color: ${(stuff = getStuff(thing.name)).colour}">${thing.count}${stuff.icon}</span>`;
+function displayStuff(node:HTMLElement, route:unknown){
+	function displaySingleThing(thing:simpleStuffList[number]) {
+		let stuff = getStuff(thing.name);
+		return `<span style="color: ${stuff.colour}">${thing.count}${stuff.icon}</span>`;
 	}
 	if ((route.require || route.requirements).length){
-		node.querySelector(".require").innerHTML = (route.require || route.requirements)
+		node.querySelector(".require")!.innerHTML = (route.require || route.requirements)
 			.map(displaySingleThing)
 			.join("") + (route.require ? rightArrowSVG : "");
 	}
 	if (route.stuff){
-		node.querySelector(".stuff").innerHTML = route.stuff.map(displaySingleThing).join("");
+		node.querySelector(".stuff")!.innerHTML = route.stuff.map(displaySingleThing).join("");
 		if (route.cloneHealth.some(c => c[1] < 0)){
-			node.querySelector(".stuff").innerHTML += `<span style="color: #ff0000">${route.cloneHealth.filter(c => c[1] < 0).length}♥</span>`;
+			node.querySelector(".stuff")!.innerHTML += `<span style="color: #ff0000">${route.cloneHealth.filter(c => c[1] < 0).length}♥</span>`;
 		};
 	} else {
 		let stuffNode = node.querySelector(".stuff");
@@ -134,6 +152,10 @@ function displayStuff(node, route){
 	}
 }
 
-function getEquipHealth(stuff){
-	return stuff.reduce((a, s) => a + (s.name == "Iron Armour") * s.count * 5 + (s.name == "Steel Armour") * s.count * 15, 0);
+function getEquipHealth(stuff:simpleStuffList){
+    const equipmentHealth:{[key in simpleStuffList[number]["name"]]?:number} = {
+        "Iron Armour": 5,
+        "Steel Armour": 15
+    }
+	return stuff.reduce((a, s) => a + (equipmentHealth[s.name] || 0) * s.count, 0);
 }

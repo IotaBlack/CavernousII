@@ -204,9 +204,9 @@ sodipodi:nodetypes="cc"
 inkscape:path-effect="#path-effect1207"
 inkscape:original-d="M 90.267782,82.127264 C -109.79121,9.4816321 148.34729,56.074321 50.246312,0" />` + svgEnd;
 
-document.querySelector("#add-action-up").innerHTML = upArrowSVG.replace(/"14"/g, '"22"');
-document.querySelector("#add-action-down").innerHTML = downArrowSVG.replace(/"14"/g, '"22"');
-document.querySelector("#add-action-right").innerHTML = rightArrowSVG.replace(/"14"/g, '"22"');
-document.querySelector("#add-action-left").innerHTML = leftArrowSVG.replace(/"14"/g, '"22"');
-document.querySelector("#add-action-interact").innerHTML = interactSVG.replace(/"14"/g, '"22"');
-document.querySelector("#add-action-repeat-interact").innerHTML = repeatInteractSVG.replace(/"14"/g, '"22"');
+document.querySelector("#add-action-up")!.innerHTML = upArrowSVG.replace(/"14"/g, '"22"');
+document.querySelector("#add-action-down")!.innerHTML = downArrowSVG.replace(/"14"/g, '"22"');
+document.querySelector("#add-action-right")!.innerHTML = rightArrowSVG.replace(/"14"/g, '"22"');
+document.querySelector("#add-action-left")!.innerHTML = leftArrowSVG.replace(/"14"/g, '"22"');
+document.querySelector("#add-action-interact")!.innerHTML = interactSVG.replace(/"14"/g, '"22"');
+document.querySelector("#add-action-repeat-interact")!.innerHTML = repeatInteractSVG.replace(/"14"/g, '"22"');
