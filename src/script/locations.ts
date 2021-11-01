@@ -1,24 +1,21 @@
-
-
-
 class MapLocation<basetypeName extends anyLocationTypeName = anyLocationTypeName> {
-    x: number;
-    y: number;
-    zone: Zone;
-    baseType: LocationType<basetypeName>;
-    creature: Creature | null;
-    priorCompletionData: any[];
-    completions: number;
-    entered: number;
-    remainingEnter: number;
-    remainingPresent: number;
-    enterDuration: number;
-    presentDuration: number;
-    temporaryPresent: Action | null;
-    wither: number;
-    water: any;
-    usedTime: any;
-	constructor(x: number, y: number, zone: Zone , type: basetypeName){
+	x: number;
+	y: number;
+	zone: Zone;
+	baseType: LocationType<basetypeName>;
+	creature: Creature | null;
+	priorCompletionData: any[];
+	completions: number;
+	entered: number;
+	remainingEnter: number;
+	remainingPresent: number;
+	enterDuration: number;
+	presentDuration: number;
+	temporaryPresent: Action | null;
+	wither: number;
+	water: any;
+	usedTime: any;
+	constructor(x: number, y: number, zone: Zone, type: basetypeName){
 		this.x = x;
 		this.y = y;
 		this.zone = zone;
@@ -28,8 +25,8 @@ class MapLocation<basetypeName extends anyLocationTypeName = anyLocationTypeName
 			this.creature = new Creature(creature, x, y);
 			creatures.push(this.creature);
 		} else {
-            this.creature = null
-        }
+			this.creature = null
+		}
 		this.priorCompletionData = Array(realms.length).fill(0);
 		this.completions = 0;
 		this.entered = 0;
@@ -48,11 +45,11 @@ class MapLocation<basetypeName extends anyLocationTypeName = anyLocationTypeName
 
 	get type(): LocationType<anyLocationTypeName> {
 		if (currentRealm === 2){
-            const symbol = verdantMapping[this.baseType.symbol];
-            if (symbol){
-                return getLocationType(getLocationTypeBySymbol(symbol) || '') || this.baseType;
-            }
-        }
+			const symbol = verdantMapping[this.baseType.symbol];
+			if (symbol){
+				return getLocationType(getLocationTypeBySymbol(symbol) || '') || this.baseType;
+			}
+		}
 		return this.baseType;
 	}
 
@@ -82,10 +79,10 @@ class MapLocation<basetypeName extends anyLocationTypeName = anyLocationTypeName
 	tick(time: number) {
 		let usedTime; let percent;
 		if (clones[currentClone].x == this.x && clones[currentClone].y == this.y){
-            const action = (this.type.presentAction || this.temporaryPresent);
+			const action = (this.type.presentAction || this.temporaryPresent)!;
 			const skillDiv = action.getSkillDiv();
 			usedTime = Math.min(time / skillDiv, this.remainingPresent);
-			action.tick(usedTime, {x: this.x, y: this.y}, usedTime * skillDiv);
+			action.tick(usedTime, {x: this.x, y: this.y} as Creature, usedTime * skillDiv);
 			this.remainingPresent -= usedTime;
 			if (this.remainingPresent == 0){
 				if (action.complete(this.x, this.y)){
@@ -102,10 +99,10 @@ class MapLocation<basetypeName extends anyLocationTypeName = anyLocationTypeName
 			// Don't pass back effective time.
 			usedTime *= skillDiv;
 		} else {
-			if (["Walk", "Kudzu Chop"].includes(this.type.getEnterAction(this.entered).name)){
+			if (["Walk", "Kudzu Chop"].includes(this.type.getEnterAction(this.entered)!.name)){
 				if (!clones[currentClone].walkTime){
 					// Second and following entrances
-					clones[currentClone].walkTime = this.type.getEnterAction(this.entered).start(this.completions, this.priorCompletions, this.x, this.y);
+					clones[currentClone].walkTime = this.type.getEnterAction(this.entered)!.start(this.completions, this.priorCompletions, this.x, this.y);
 				}
 				this.remainingEnter = clones[currentClone].walkTime;
 			} else {
@@ -120,7 +117,7 @@ class MapLocation<basetypeName extends anyLocationTypeName = anyLocationTypeName
 					if (this.type.name == "Goblin") getMessage("Goblin").display();
 					// If it was a fight it's not over.
 					if (this.creature){
-						this.remainingEnter = this.start(this.completions, this.priorCompletions, this.x, this.y);
+						this.start();
 					} else {
 						loopCompletions++;
 						this.remainingEnter = 1;
@@ -139,7 +136,7 @@ class MapLocation<basetypeName extends anyLocationTypeName = anyLocationTypeName
 		return [time - usedTime, percent];
 	}
 
-	setTemporaryPresent(rune) {
+	setTemporaryPresent(rune: Rune) {
 		if (this.type.presentAction){
 			return false;
 		}
@@ -160,7 +157,8 @@ class MapLocation<basetypeName extends anyLocationTypeName = anyLocationTypeName
 
 	zoneTick(time:number) {
 		if (!this.water) return;
-		zones[currentZone].getAdjLocations(this.x, this.y).forEach(([tile, loc]) => {
+		// [tile, loc] is actually [mapChar, MapLocation] but ts doesn't provide a way to typehint that.  Or it's just bad at complex types.
+		zones[currentZone].getAdjLocations(this.x, this.y).forEach(([tile, loc]: any) => {
 			if (!walkable.includes(tile) && !shrooms.includes(tile)) return;
 			const prev_level = Math.floor(loc.water * 10);
 			// 1 water should add 0.04 water per second to each adjacent location.

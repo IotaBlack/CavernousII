@@ -1,18 +1,16 @@
-
-
 type simpleStuffList = {
-    name: anyStuffName;
-    count: number;
+	name: anyStuffName;
+	count: number;
 }[];
 
 class Stuff<stuffName extends string> {
-    name: stuffName;
-    icon: string;
-    description: string;
-    colour: string;
-    count: number;
-    node: HTMLElement | null;
-    min: number;
+	name: stuffName;
+	icon: string;
+	description: string;
+	colour: string;
+	count: number;
+	node: HTMLElement | null;
+	min: number;
 
 	constructor(name:stuffName, icon:string, description:string, colour:string, count = 0, effect?: ((newCount:number)=>void)){
 		this.name = name;
@@ -46,9 +44,9 @@ class Stuff<stuffName extends string> {
 	createNode() {
 		if (this.node) return;
 		let stuffTemplate = document.querySelector("#stuff-template");
-        if (stuffTemplate === null) {
-            throw new Error('No stuff template');
-        }
+		if (stuffTemplate === null) {
+			throw new Error('No stuff template');
+		}
 		let el = stuffTemplate.cloneNode(true) as HTMLElement;
 		el.id = "stuff_" + this.name.replace(" ", "_");
 		el.querySelector(".name")!.innerHTML = this.name;
@@ -71,14 +69,17 @@ class Stuff<stuffName extends string> {
 
 function calcCombatStats() {
 	let attack = [];
+	attack.push(...Array(getStuff("+1 Sword").count).fill(4));
 	attack.push(...Array(getStuff("Steel Sword").count).fill(2));
 	attack.push(...Array(getStuff("Iron Sword").count).fill(1));
 	attack = attack.slice(0, clones.length).reduce((a, c) => a + c, 0);
 	let defense = [];
+	defense.push(...Array(getStuff("+1 Shield").count).fill(4));
 	defense.push(...Array(getStuff("Steel Shield").count).fill(2));
 	defense.push(...Array(getStuff("Iron Shield").count).fill(1));
 	defense = defense.slice(0, clones.length).reduce((a, c) => a + c, 0);
 	let health = [];
+	health.push(...Array(getStuff("+1 Armour").count).fill(25));
 	health.push(...Array(getStuff("Steel Armour").count).fill(15));
 	health.push(...Array(getStuff("Iron Armour").count).fill(5));
 	health = health.slice(0, clones.length).reduce((a, c) => a + c, 0);
@@ -113,6 +114,9 @@ const stuff = [
 	new Stuff("Iron Axe", "¢", "An iron axe.  Gives +15 or +15% to Woodcutting (whichever is greater), and applies 1% of your Woodcutting skill to combat.", "#777777", 0, getStatBonus("Woodcutting", 15)),
 	new Stuff("Iron Pick", "⛏", "An iron pickaxe.  Gives +15 or +15% to Mining (whichever is greater), and applies 1% of your Mining skill to combat.", "#777777", 0, getStatBonus("Mining", 15)),
 	new Stuff("Iron Hammer", hammerSVG, "An iron hammer.  Gives +15 or +15% to Smithing (whichever is greater), and applies 1% of your Smithing skill to combat.", "#777777", 0, getStatBonus("Smithing", 15)),
+	new Stuff("+1 Sword", ")", "A magical sword.  Sharp! (+4 attack)  Max 1 weapon per clone.", "#688868", 0, calcCombatStats),
+	new Stuff("+1 Shield", "[", "A magical shield.  This should help you not die. (+4 defense)  Max 1 shield per clone.", "#688868", 0, calcCombatStats),
+	new Stuff("+1 Armour", "]", "A suit of magical armour.  This should help you take more hits. (+25 health)  Max 1 armour per clone.", "#688868", 0, calcCombatStats),
 ];
 
 function setContrast(colour:string) {
@@ -131,17 +135,20 @@ function getStuff<T extends anyStuffName>(name:T) {
 	return stuff.find(a => a.name == name) as Stuff<T>;
 }
 
-function displayStuff(node:HTMLElement, route:unknown){
+function displayStuff(node:HTMLElement, route:BaseRoute | ZoneRoute){
 	function displaySingleThing(thing:simpleStuffList[number]) {
 		let stuff = getStuff(thing.name);
 		return `<span style="color: ${stuff.colour}">${thing.count}${stuff.icon}</span>`;
 	}
-	if ((route.require || route.requirements).length){
-		node.querySelector(".require")!.innerHTML = (route.require || route.requirements)
+	if (route.require?.length){
+		node.querySelector(".require")!.innerHTML = route.require
 			.map(displaySingleThing)
 			.join("") + (route.require ? rightArrowSVG : "");
+	} else {
+		let stuffNode = node.querySelector(".require");
+		if (stuffNode) stuffNode.innerHTML = "";
 	}
-	if (route.stuff){
+	if (route instanceof ZoneRoute && route.stuff.length){
 		node.querySelector(".stuff")!.innerHTML = route.stuff.map(displaySingleThing).join("");
 		if (route.cloneHealth.some(c => c[1] < 0)){
 			node.querySelector(".stuff")!.innerHTML += `<span style="color: #ff0000">${route.cloneHealth.filter(c => c[1] < 0).length}♥</span>`;
@@ -153,9 +160,10 @@ function displayStuff(node:HTMLElement, route:unknown){
 }
 
 function getEquipHealth(stuff:simpleStuffList){
-    const equipmentHealth:{[key in simpleStuffList[number]["name"]]?:number} = {
-        "Iron Armour": 5,
-        "Steel Armour": 15
-    }
+	const equipmentHealth:{[key in simpleStuffList[number]["name"]]?:number} = {
+		"Iron Armour": 5,
+		"Steel Armour": 15,
+		"+1 Armour": 25,
+	}
 	return stuff.reduce((a, s) => a + (equipmentHealth[s.name] || 0) * s.count, 0);
 }

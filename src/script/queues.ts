@@ -1,14 +1,15 @@
 let queues:ActionQueue[] = [];
 let selectedQueue:number[] = [];
-let savedQueues:unknown = [];
+let savedQueues:SavedActionQueue[] = [];
 let cursor:[number,number | null] = [0, null];
 
 class QueueAction extends Array {
-    index: number | null = null;
-    clone: number | null = null;
+	index: number | null = null;
+	clone: number | null = null;
 	constructor(actionID:string, undone = true, ...rest: any) {
+		// Spread should work fine into an array
+		// @ts-ignore
 		super(actionID, undone, ...rest);
-
 	}
 
 	get action():string | null {
@@ -24,7 +25,7 @@ class QueueAction extends Array {
 	}
 
 	get started() {
-		return this.node?.classList.contains('started');
+		return this.node?.classList.contains("started");
 	}
 
 	get node() {
@@ -33,7 +34,7 @@ class QueueAction extends Array {
 			node.classList.add("started");
 			node.style.backgroundSize = "0%";
 		}
-		DefineObjectValue(this, 'node', node);
+		DefineObjectValue(this, "node", node);
 		return node;
 	}
 
@@ -41,7 +42,7 @@ class QueueAction extends Array {
 		ch = this.migrate(ch);
 		if (ch[0] == "Q"){
 			// return new QueueReferenceAction(ch);
-            throw new Error("QueueReferenceAction is disabled");
+			throw new Error("QueueReferenceAction is disabled");
 
 		} else if (ch[0] == "P") {
 			return new QueuePathfindAction(ch);
@@ -69,7 +70,7 @@ class QueueAction extends Array {
 }
 
 class QueueReferenceAction extends QueueAction {
-	constructor(queueID, undone = true, queueReference) {
+	constructor(queueID: string, undone = true, queueReference: SavedActionQueue) {
 		if (!queueReference) queueReference = savedQueues[getActionValue(queueID)];
 		super(queueID, undone, queueReference);
 	}
@@ -80,21 +81,23 @@ class QueueReferenceAction extends QueueAction {
 
 	get action(): string {
 		if (!this[2]) this[2] = savedQueues[this[0]];
-		let nextAction = this[2].find(a => a[`${this.clone}_${this.index}`] === undefined);
-		if (!nextAction) return [undefined, -1];
-		return [nextAction[0], this.index];
+		let nextAction = this[2].find((a: any) => a[`${this.clone}_${this.index}`] === undefined);
+		if (!nextAction) return "";
+		return nextAction[0];
 	}
 
 	complete() {
-		let nextAction = this[2].find(a => a[`${this.clone}_${this.index}`] === undefined);
+		let nextAction = this[2].find((a: any) => a[`${this.clone}_${this.index}`] === undefined);
 		nextAction[`${this.clone}_${this.index}`] = false;
-		if (this[2].every(a => a[`${this.clone}_${this.index}`] === false)) this[1] = false;
+		if (this[2].every((a: any) => a[`${this.clone}_${this.index}`] === false)) this[1] = false;
 	}
 }
 
 class QueueRepeatInteractAction extends QueueAction {
 	get action(){
-		let presentAction = zones[currentZone].getMapLocation(clones[this.clone].x, clones[this.clone].y)?.type.presentAction;
+		let presentAction = zones[currentZone].getMapLocation(clones[this.clone!].x, clones[this.clone!].y)?.type.presentAction;
+		// Typescript can't read its own function types.
+		// @ts-ignore
 		if (presentAction && presentAction.canStart && presentAction.canStart() > 0){
 			return this[0];
 		}
@@ -102,22 +105,24 @@ class QueueRepeatInteractAction extends QueueAction {
 	}
 
 	complete(force = false){
-        const location = zones[currentZone].getMapLocation(clones[this.clone].x, clones[this.clone].y);
-        if( location === null) throw (new Error("Tried loading non existant map location"))
+		const location = zones[currentZone].getMapLocation(clones[this.clone!].x, clones[this.clone!].y);
+		if (location === null) throw (new Error("Tried loading non existant map location"))
 		let presentAction = location.type.presentAction;
-		if ((presentAction === null) || presentAction.canStart() < 0 || force){
+		// Typescript can't read its own function types.
+		// @ts-ignore
+		if ((presentAction === null) || presentAction.canStart!() < 0 || force){
 			this[1] = false;
 		}
 	}
 }
 
 class QueuePathfindAction extends QueueAction {
-    targetXOffset: number;
-    targetYOffset: number;
+	targetXOffset: number;
+	targetYOffset: number;
 	constructor(actionID: string, undone = true) {
 		super(actionID, undone);
-        const match = this.actionID.match(/P(-?\d+):(-?\d+);/);
-        if (match === null) throw new Error("Invalid pathfind action");
+		const match = this.actionID.match(/P(-?\d+):(-?\d+);/);
+		if (match === null) throw new Error("Invalid pathfind action");
 
 		let [_, targetX, targetY] = match;
 		this.targetXOffset = +targetX;
@@ -133,7 +138,7 @@ class QueuePathfindAction extends QueueAction {
 	}
 
 	get action() {
-		let originX = clones[this.clone].x + zones[currentZone].xOffset, originY = clones[this.clone].y + zones[currentZone].yOffset;
+		let originX = clones[this.clone!].x + zones[currentZone].xOffset, originY = clones[this.clone!].y + zones[currentZone].yOffset;
 		// Do a simple search from the clone's current position to the target position.
 		// Return the direction the clone needs to go next.
 		let getDistance = (x1: number, x2: number, y1: number, y2: number) => Math.abs(x1 - x2) + Math.abs(y1 - y2);
@@ -171,7 +176,7 @@ class QueuePathfindAction extends QueueAction {
 	}
 
 	complete(){
-		let originX = clones[this.clone].x + zones[currentZone].xOffset, originY = clones[this.clone].y + zones[currentZone].yOffset;
+		let originX = clones[this.clone!].x + zones[currentZone].xOffset, originY = clones[this.clone!].y + zones[currentZone].yOffset;
 		if ((originX == this.targetX && originY == this.targetY) || this.action === null){
 			this[1] = false;
 		}
@@ -179,7 +184,7 @@ class QueuePathfindAction extends QueueAction {
 }
 
 class ActionQueue extends Array<QueueAction> {
-    index: any;
+	index: any;
 	constructor(...items:QueueAction[]) {
 		super(...items);
 	}
@@ -202,12 +207,12 @@ class ActionQueue extends Array<QueueAction> {
 			return this.removeActionAt(index);
 		}
 
-		// Standard action:        [UDLRI<=+]
-		// Rune/spell action:      [NS]\d+;
-		// Repeat-Forge:           T
-		// Queue reference:        Q\d+;
-		// Pathfind action:        P-?\d+:-?\d+;
-		if (!actionID.match(/^([UDLRI<=+]|[NS]\d+;|T|Q\d+;|P-?\d+:-?\d+;)$/)){
+		// Standard action:     [UDLRI<=+\.:]
+		// Rune/spell action:   [NS]\d+;
+		// Repeat-Forge:        T
+		// Queue reference:     Q\d+;
+		// Pathfind action:     P-?\d+:-?\d+;
+		if (!actionID.match(/^([UDLRI<=+\.:]|[NS]\d+;|T|Q\d+;|P-?\d+:-?\d+;)$/)){
 			return;
 		}
 		if (index &&!this[index]){
@@ -215,38 +220,38 @@ class ActionQueue extends Array<QueueAction> {
 		}
 
 		let done = index == null ? false // last action, don't skip
-		         : index >= 0 ? this[index].done // middle action, skip if prior is done
+				 : index >= 0 ? this[index].done // middle action, skip if prior is done
 				 : this[0].started; // first action, skip if next is started
 		let newAction = //actionID[0] == "Q" ? new QueueReferenceAction(actionID, !done, savedQueues[getActionValue(actionID)]):
-		               actionID[0] == "P" ? new QueuePathfindAction(actionID, !done)
-		              : actionID[0] == "T" ? new QueueRepeatInteractAction(actionID, !done)
-		              : new QueueAction(actionID, !done);
+					   actionID[0] == "P" ? new QueuePathfindAction(actionID, !done)
+					  : actionID[0] == "T" ? new QueueRepeatInteractAction(actionID, !done)
+					  : new QueueAction(actionID, !done);
 
 		if (index == null) {
 			this.push(newAction);
 			this.queueNode?.append(newAction.node);
 		} else if (index >= 0) {
 			this.splice(index + 1, 0, newAction);
-			this[index].node.insertAdjacentElement('afterend', newAction.node);
+			this[index].node.insertAdjacentElement("afterend", newAction.node);
 			// cursor[1]++;
-            cursor[1] = index + 1; //not sure if this is correct
+			cursor[1] = index + 1; //not sure if this is correct
 		} else {
 			this.unshift(newAction);
-			this.queueNode?.insertAdjacentElement('afterbegin', newAction.node);
+			this.queueNode?.insertAdjacentElement("afterbegin", newAction.node);
 			cursor[1] = index + 1;
 		}
 	}
 
 	removeActionAt(index = cursor[1]) {
 		if (index == null) {
-            const action = this.pop();
+			const action = this.pop();
 			if (action === undefined) return;
 			action.node.remove();
 		} else {
 			if (this.length == 0 || index == -1) return;
 			this.splice(index, 1)[0].node.remove();
 			// cursor[1]--;
-            cursor[1] = index-1
+			cursor[1] = index-1
 		}
 	}
 
@@ -260,21 +265,21 @@ class ActionQueue extends Array<QueueAction> {
 			else {
 				this.addActionAt(item[0], index);
 			}
-            if(increment){
-                increment && index!++
-            };
+			if (increment){
+				increment && index!++
+			};
 		}
 	}
 
 	get queueNode() {
 		let node = document.querySelector<HTMLElement>(`#queue${this.index} > .queue-inner`);
-		DefineObjectValue(this, 'queueNode', node);
+		DefineObjectValue(this, "queueNode", node);
 		return node;
 	}
 
 	clear() {
 		this.splice(0, this.length);
-		this.queueNode!.innerText = '';
+		this.queueNode!.innerText = "";
 	}
 
 	fromString(string: string) {
@@ -306,8 +311,20 @@ class ActionQueue extends Array<QueueAction> {
 	}
 }
 
+class SavedActionQueue extends ActionQueue {
+	name: string;
+	icon: string;
+	colour: string;
+	constructor(...items:QueueAction[]) {
+		super(...items);
+		this.name = "";
+		this.icon = "";
+		this.colour = "";
+	}
+}
+
 function getActionValue(action:string){
-	return action.match(/\d+/)?.[0];
+	return +(action.match(/\d+/)?.[0] || 0);
 }
 
 function addActionToQueue(action:string, queue: number | null = null){
@@ -318,7 +335,7 @@ function addActionToQueue(action:string, queue: number | null = null){
 			scrollQueue(selectedQueue[i], cursor[1] ?? undefined);
 		}
 		showFinalLocation();
-		countMultipleInteracts();
+		countMultipleActions();
 		return;
 	}
 	if (queues[queue] === undefined) return;
@@ -327,13 +344,13 @@ function addActionToQueue(action:string, queue: number | null = null){
 
 	scrollQueue(queue, cursor[1] ?? undefined);
 	showCursor();
-	countMultipleInteracts();
+	countMultipleActions();
 }
 
 function addRuneAction(index:number, type:"rune" | "spell"){
-	if (type == 'rune'){
+	if (type == "rune"){
 		if (index < runes.length && runes[index].canAddToQueue()) addActionToQueue("N" + index + ";");
-	} else if (type == 'spell') {
+	} else if (type == "spell") {
 		if (index < spells.length && spells[index].canAddToQueue()) addActionToQueue("S" + index + ";");
 	}
 }
@@ -366,8 +383,8 @@ function clearQueue(queue: number | null = null, noConfirm = false){
 function createActionNode(action: string){
 	if (action[0] == "Q") return createQueueActionNode(getActionValue(action));
 
-    const actionTemplate = document.querySelector("#action-template");
-    if (actionTemplate === null) throw new Error("No action template found");
+	const actionTemplate = document.querySelector("#action-template");
+	if (actionTemplate === null) throw new Error("No action template found");
 
 	let actionNode = actionTemplate.cloneNode(true) as HTMLElement;
 	actionNode.removeAttribute("id");
@@ -381,21 +398,23 @@ function createActionNode(action: string){
 		"<": repeatListSVG,
 		"=": syncSVG,
 		"+": noSyncSVG,
+		".": "...",
+		":": pauseSVG,
 	}[action];
 	if (!character){
-		let value = parseInt(getActionValue(action)!); //can this be undefined/need a check?
+		let value = getActionValue(action)!;
 		character = action[0] == "N" ? runes[value].icon
-		          : action[0] == "S" ? spells[value].icon
-		          : action[0] == "P" ? pathfindSVG
-		          : "";
+				  : action[0] == "S" ? spells[value].icon
+				  : action[0] == "P" ? pathfindSVG
+				  : "";
 	}
-	actionNode.querySelector(".character")!.innerHTML = character;
+	actionNode.querySelector(".character")!.innerHTML = character || "";
 	return actionNode;
 }
 
 function createQueueActionNode(queue: number){
-    const actionTemplate = document.querySelector("#action-template");
-    if (actionTemplate === null) throw new Error("No action template found");
+	const actionTemplate = document.querySelector("#action-template");
+	if (actionTemplate === null) throw new Error("No action template found");
 
 	let actionNode = actionTemplate.cloneNode(true) as HTMLElement;
 	actionNode.removeAttribute("id");
@@ -415,72 +434,80 @@ function highlightCompletedActions(){
 	if (!queuesNode) return;
 	for (let i = 0; i < zones[displayZone].queues.length; i++){
 		let queueBlock = queuesNode.children[i];
-		let queueNode = queueBlock.querySelector('.queue-inner');
-        if(queueNode === null) throw new Error("Queue node not found");
+		let queueNode = queueBlock.querySelector(".queue-inner");
+		if (queueNode === null) throw new Error("Queue node not found");
 
-		let nodes = [...queueNode.children].filter(n => !n.classList.contains("interact-count")) as HTMLElement[];
+		let nodes = [...queueNode.children].filter(n => !n.classList.contains("action-count")) as HTMLElement[];
 		for (let j = 0; j < zones[displayZone].queues[i].length; j++){
 			if (zones[displayZone].queues[i][j][1]){
-				nodes[j].classList.remove('started');
+				nodes[j].classList.remove("started");
 				nodes[j].style.backgroundSize = "0%";
 			} else {
-				nodes[j].classList.add('started');
+				nodes[j].classList.add("started");
 				nodes[j].style.backgroundSize = "100%";
 			}
 		}
 	}
 }
 
-function countMultipleInteracts(){
+function countMultipleActions(){
 	if (!queuesNode) return;
-	queuesNode.querySelectorAll(".interact-count").forEach(node => {
+	queuesNode.querySelectorAll(".action-count").forEach(node => {
 		node.parentNode?.removeChild(node);
 	});
 	for (let i = 0; i < zones[displayZone].queues.length; i++){
 		let queueBlock = queuesNode.children[i];
-		let queueNode = queueBlock.querySelector('.queue-inner');
-        if(queueNode === null) throw new Error("Queue node not found");
+		let queueNode = queueBlock.querySelector(".queue-inner");
+		if (queueNode === null) throw new Error("Queue node not found");
 		let nodes = queueNode.children;
-		let interactCount = 0;
+		let actionCount = 0;
+		let countedType = null;
 		for (let j = 0; j < zones[displayZone].queues[i].length + 1; j++){
-			if (zones[displayZone].queues[i][j]?.[0] == "I"){
-				interactCount++;
-			} else if (interactCount > 3) {
+			let nextType = zones[displayZone].queues[i][j]?.[0];
+			if (actionCount > 3 && nextType != countedType) {
 				let node = document.createElement("div");
-				node.classList.add("interact-count");
-				node.setAttribute("data-count", interactCount.toString());
-				node.style.left = `${(j - interactCount) * 16 + 2}px`;
-				node.style.width = `${interactCount * 16 - 2}px`;
-				if (interactCount > 9) node.classList.add("double-digit");
-				queueNode.insertBefore(node, nodes[j - interactCount]);
-				interactCount = 0;
+				node.classList.add("action-count");
+				node.setAttribute("data-count", actionCount.toString());
+				node.style.left = `${(j - actionCount) * 16 + 2}px`;
+				node.style.width = `${actionCount * 16 - 2}px`;
+				if (actionCount > 9) node.classList.add("double-digit");
+				queueNode.insertBefore(node, nodes[j - actionCount]);
+				actionCount = 0;
+				countedType = null;
+			}
+			if (".I".includes(nextType) && (countedType == nextType || countedType === null)){
+				actionCount++;
+				countedType = nextType;
 			} else {
-				interactCount = 0;
+				actionCount = 0;
+				countedType = null;
 			}
 		}
 	}
 }
 
+let actionBarWidth: number | null = null;
+
 function selectQueueAction(queue: number, action: number, percent: number){
 	let queueBlock = queuesNode.children[queue];
-	let queueNode = queueBlock.querySelector('.queue-inner');
-    if(queueNode === null) throw new Error("Queue node not found");
-	this.width = this.width || queueNode.parentNode.clientWidth; //this should not be here
-	let nodes = [...queueNode.children].filter(n => !n.classList.contains("interact-count")) as HTMLElement[];
+	let queueNode = queueBlock.querySelector(".queue-inner");
+	if (queueNode === null) throw new Error("Queue node not found");
+	actionBarWidth = actionBarWidth || queueNode.parentElement!.clientWidth;
+	let nodes = [...queueNode.children].filter(n => !n.classList.contains("action-count")) as HTMLElement[];
 	let node = nodes[action];
 	if (!node && percent == 100){
 		// This occurs whenever there's a zone change
 		return;
 	}
-	node.classList.add('started');
+	node.classList.add("started");
 	if (queues[queue][action][2]){
-		let complete = queues[queue][action][2].findIndex(q => q[`${queue}_${action}`] === undefined);
+		let complete = queues[queue][action][2].findIndex((q: any) => q[`${queue}_${action}`] === undefined);
 		percent /= queues[queue][action][2].length;
 		percent += (complete / queues[queue][action][2].length) * 100;
 	}
 	node.style.backgroundSize = `${Math.max(0, percent)}%`;
 	let workProgressBar = queueBlock.querySelector(".work-progress") as HTMLElement | null;
-    if(workProgressBar === null) throw new Error("workProgressBar not found");
+	if (workProgressBar === null) throw new Error("workProgressBar not found");
 	let lastProgress = +(workProgressBar.getAttribute("lastProgress") || 0);
 	if (percent < lastProgress || lastProgress == 100) {
 		workProgressBar.style.width = "0%";
@@ -496,21 +523,21 @@ function selectQueueAction(queue: number, action: number, percent: number){
 }
 
 function clearWorkProgressBars(){
-	[...(queuesNode?.querySelectorAll<HTMLElement>(".work-progress"))].forEach(bar => bar.style.width = "0%");
+	[...(queuesNode?.querySelectorAll<HTMLElement>(".work-progress") || [])].forEach(bar => bar.style.width = "0%");
 }
 
-function scrollQueue(queue:number, action:number = queues[queue].length){
+function scrollQueue(queue:number, action:number = zones[displayZone].queues[queue].length){
 	let queueNode = document.querySelector<HTMLElement>(`#queue${queue} .queue-inner`);
-    if(queueNode === null) throw new Error("Queue node not found");
+	if (queueNode === null) throw new Error("Queue node not found");
 
-	this.width = this.width || queueNode.parentNode.clientWidth; //this should also probably not be here
-	(queueNode.parentNode as HTMLElement).scrollLeft = Math.max(action * 16 - (this.width / 2), 0);
+	actionBarWidth = actionBarWidth || queueNode.parentElement!.clientWidth; //this should also probably not be here
+	queueNode.parentElement!.scrollLeft = Math.max(action * 16 - (actionBarWidth / 2), 0);
 }
 
 function redrawQueues(){
 	for (let i = 0; i < zones[displayZone].queues.length; i++){
 		let queueNode = document.querySelector(`#queue${i} .queue-inner`);
-        if(queueNode === null) throw new Error("Queue node not found");
+		if (queueNode === null) throw new Error("Queue node not found");
 		while (queueNode.lastChild) {
 			queueNode.removeChild(queueNode.lastChild);
 		}
@@ -520,24 +547,24 @@ function redrawQueues(){
 		}
 	}
 	highlightCompletedActions();
-	countMultipleInteracts();
+	countMultipleActions();
 	let timelineEl = document.querySelector(`#timelines`);
-    if(timelineEl === null) throw new Error("Timelines node not found");
+	if (timelineEl === null) throw new Error("Timelines node not found");
 	while (timelineEl.lastChild) {
 		timelineEl.removeChild(timelineEl.lastChild);
 	  }
 
-    for (const c of clones) {
-        timelineEl.append(c.timeLineElements[displayZone]);
-    }
+	for (const c of clones) {
+		timelineEl.append(c.timeLineElements[displayZone]);
+	}
 	clearWorkProgressBars();
 }
 
 function setCursor(event: MouseEvent, el: HTMLElement){
 	let nodes = Array.from(el.parentNode?.children || []);
-	cursor[1] = nodes.filter(n => !n.classList.contains("interact-count")).findIndex(e => e == el) - +(event.offsetX < 8);
+	cursor[1] = nodes.filter(n => !n.classList.contains("action-count")).findIndex(e => e == el) - +(event.offsetX < 8);
 	if (nodes.length - 1 == cursor[1]) cursor[1] = null;
-	cursor[0] = parseInt((el.parentNode?.parentNode as HTMLElement)?.id.replace("queue", ""));
+	cursor[0] = parseInt(el.parentNode!.parentElement!.id.replace("queue", ""));
 	showCursor();
 }
 
@@ -599,17 +626,19 @@ function importQueues() {
 	}
 }
 
-function longImportQueues() {
-	let queueString = prompt("Input your queues");
-	if (!queueString) return;
-	let tempQueues = zones.map(z => z.node ? z.queues.map(queue => queueToString(queue)) : "");
+function longImportQueues(queueString: string = "") {
+	if (!queueString){
+		let queueString = prompt("Input your queues");
+		if (!queueString) return;
+	}
+	let tempQueues = JSON.stringify(zones.map(z => z.node ? z.queues.map(queue => queueToString(queue)) : "").filter(q => q));
 	try {
 		let newQueues = JSON.parse(queueString);
-		if (newQueues.length > zones.length || newQueues.some(q => q.length > clones.length)) {
+		if (newQueues.length > zones.length || newQueues.some((q: any) => q.length > clones.length)) {
 			alert("Could not import queues - too many queues.")
 			return;
 		}
-		newQueues.forEach((q, i) => {
+		newQueues.forEach((q:any, i:number) => {
 			zones[i].queues.map(e => e.clear());
 			for (let j = 0; j < q.length; j++) {
 				zones[i].queues[j].fromString(q[j]);
@@ -618,14 +647,15 @@ function longImportQueues() {
 		redrawQueues();
 	} catch {
 		alert("Could not import queues.");
-		longImportQueues(tempQueues);//WAT
+		// Clean up any issues
+		longImportQueues(tempQueues);
 	}
 }
 
 
 
 function DefineObjectValue(o:object, name: string | Function, value:unknown = name, enumerable = false) {
-	if (typeof name == 'function')
+	if (typeof name == "function")
 		name = name.name
 	return Object.defineProperty(o, name, {
 		enumerable,

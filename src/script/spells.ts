@@ -1,12 +1,12 @@
 class Spell<spellName extends anySpellName = anySpellName> {
-    name: string;
-    icon: string;
-    castManaCost: number;
-    sustainManaCost: number;
-    endOnCombat: boolean;
-    description: string;
-    unlocked: boolean;
-    node: HTMLElement | null;
+	name: string;
+	icon: string;
+	castManaCost: number;
+	sustainManaCost: number;
+	endOnCombat: boolean;
+	description: string;
+	unlocked: boolean;
+	node: HTMLElement | null;
 
 	constructor(name:spellName, icon:string, castManaCost:number, sustainManaCost:number, endOnCombat:boolean, description: string){
 		this.name = name;
@@ -16,7 +16,7 @@ class Spell<spellName extends anySpellName = anySpellName> {
 		this.endOnCombat = endOnCombat;
 		this.description = description;
 		this.unlocked = false;
-        this.node = null
+		this.node = null
 	}
 
 	createNode(index: number) {
@@ -24,7 +24,7 @@ class Spell<spellName extends anySpellName = anySpellName> {
 			return;
 		}
 		let spellTemplate = document.querySelector("#spell-template");
-        if (spellTemplate === null) throw new Error("No spell template found");
+		if (spellTemplate === null) throw new Error("No spell template found");
 		this.node = spellTemplate.cloneNode(true) as HTMLElement;
 		this.node.id = "spell_" + this.name;
 		this.node.querySelector(".index")!.innerHTML = `${(index + 1) % 10}`;

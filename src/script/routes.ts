@@ -1,21 +1,22 @@
 class BaseRoute {
-    zone: number;
-    requirements: any;
-    usedRoutes: any;
-    loadingFailed: boolean;
-    route: any;
+	zone!: number;
+	require: any;
+	usedRoutes: any;
+	loadingFailed: boolean = false;
+	cloneHealth!: number[];
+	route: any;
 	constructor(){}
 
-	pickRoute(zone:number, route, actualRequirements = null, health = clones.map(c => 0)){
-		let routeOptions = zones[zone].sumRoute(route, actualRequirements, health);
+	pickRoute(zone:number, actualRequirements: simpleStuffList, health = clones.map(c => 0)): ZoneRoute[] | null {
+		let routeOptions = zones[zone].sumRoute(actualRequirements, health);
 		if (zone == 0){
 			if (routeOptions.length == 0) return null;
 			let health = getStat("Health");
-			route = routeOptions.find(r => r[1].every(s => s.count == 0) && r[2].every(h => Math.abs(h) < health.base + getEquipHealth(r[1]))) || [];
+			let route = routeOptions.find(r => r[1].every(s => s.count == 0) && r[2].every(h => Math.abs(h) < health.base + getEquipHealth(r[1]))) || [];
 			return route[0] ? [route[0]] : null;
 		}
 		for (let i = 0; i < routeOptions.length; i++){
-			let routes = this.pickRoute(zone - 1, routeOptions[i][0], routeOptions[i][1], routeOptions[i][2]);
+			let routes = this.pickRoute(zone - 1, routeOptions[i][1], routeOptions[i][2]);
 			if (routes !== null){
 				return [...routes, routeOptions[i][0]];
 			}
@@ -26,7 +27,7 @@ class BaseRoute {
 	loadRoute(){
 		let success = true;
 		if (this.zone > 0){
-			let routes = this.pickRoute(this.zone - 1, {"require": this.requirements}, null, this.cloneHealth);
+			let routes = this.pickRoute(this.zone - 1, this.require, this.cloneHealth);
 			markRoutesChanged();
 			this.usedRoutes = routes;
 			if (routes !== null){
@@ -57,17 +58,16 @@ class BaseRoute {
 }
 
 class Route extends BaseRoute {
-    x!: number;
-    y!: number;
-    realm!: number;
-    clonesLost!: number;
-    manaUsed!: number;
-    reachTime!: number;
-    progressBeforeReach!: number;
-    allDead!: boolean;
-    invalidateCost!: boolean;
-    totalTimeAvailable: any;
-    cloneHealth!: number[];
+	x!: number;
+	y!: number;
+	realm!: number;
+	clonesLost!: number;
+	manaUsed!: number;
+	reachTime!: number;
+	progressBeforeReach!: number;
+	allDead!: boolean;
+	invalidateCost!: boolean;
+	totalTimeAvailable: any;
 	constructor(base: MapLocation | PropertiesOf<Route>) {
 		super();
 		if (base instanceof MapLocation) {
@@ -82,8 +82,8 @@ class Route extends BaseRoute {
 				route = [route[0]];
 			} else {
 				let unique = route.find((e, i, a) => a.filter(el => el == e).length == 1);
-				let ununique = route.find(e => e != unique);
-				if (route.every(e => e == unique || e == ununique)) {
+				let ununique = route.find(e => e != unique)!;
+				if (route.every(e => e == unique || e == ununique) && unique && ununique) {
 					route = [unique, ununique];
 				}
 			}
@@ -100,14 +100,14 @@ class Route extends BaseRoute {
 
 			this.reachTime = +(queueTime / 1000).toFixed(2);
 			this.progressBeforeReach = duration - base.remainingPresent / 1000 * expectedMul;
-			this.requirements = zones[currentZone].startStuff.map(s => {
+			this.require = zones[currentZone].startStuff.map(s => {
 				return {
 					"name": s.name,
 					"count": s.count - getStuff(s.name).min,
 				}
 			}).filter(s => s.count > 0);
 			this.allDead = false;
-            this.invalidateCost = false
+			this.invalidateCost = false
 
 			return;
 		}
@@ -115,7 +115,7 @@ class Route extends BaseRoute {
 	}
 
 	getRefineCost(relativeLevel = 0) {
-		let loc = getMapLocation(this.x, this.y, false, this.zone);
+		let loc = getMapLocation(this.x, this.y, false, this.zone)!;
 		let mul = getAction("Collect Mana").getBaseDuration(this.realm);
 		return mineManaRockCost(0, loc.completions + loc.priorCompletionData[this.realm] + relativeLevel, loc.zone, this.x, this.y, this.realm) * mul;
 	}
@@ -173,7 +173,7 @@ class Route extends BaseRoute {
 		return routes.find(r => r.x == x && r.y == y && r.zone == z && r.realm == currentRealm);
 	}
 
-	static migrate(ar) {
+	static migrate(ar: any) {
 		return ar;
 	}
 
@@ -234,26 +234,16 @@ class Route extends BaseRoute {
 	}
 }
 
-function getBestRoute(x, y, z){
+function getBestRoute(x: number, y: number, z: number){
 	return routes.find(r => r.x == x && r.y == y && r.zone == z && r.realm == currentRealm);
 }
 
-function setBestRoute(x, y, totalTimeAvailable){
-	let bestRoute = routes.findIndex(r => r.x == x && r.y == y && r.realm == currentRealm);
-	if (bestRoute == -1 || routes[bestRoute].totalTimeAvailable < totalTimeAvailable){
-		if (bestRoute > -1){
-			routes.splice(bestRoute, 1);
-		}
-		routes.push(new Route(x, y, totalTimeAvailable));
-	}
-}
-
 function loadRoute(){
-	let x = document.querySelector("#x-loc").value;
-	let y = document.querySelector("#y-loc").value;
+	let x = +document.querySelector<HTMLInputElement>("#x-loc")!.value;
+	let y = +document.querySelector<HTMLInputElement>("#y-loc")!.value;
 	let bestRoute = getBestRoute(x, y, displayZone);
 	if (bestRoute) bestRoute.loadRoute();
-	document.activeElement.blur();
+	(<HTMLInputElement>document.activeElement)?.blur();
 }
 
 function updateGrindStats(){
@@ -261,62 +251,74 @@ function updateGrindStats(){
 	  .filter(r => !r.locked || r.name == "Core Realm")
 	  .map((r, realm_i) => zones
 	    .filter(z => z.mapLocations.flat().length)
-		.map((z, zone_i) => routes
-		  .filter(t => t.zone == zone_i && t.realm == realm_i)
-		  .reduce((a, t) => a + (t.allDead || t.loadingFailed ? 0.005 : t.estimateRefineTimes()), 0)));
+	    .map((z, zone_i) => routes
+	      .filter(t => t.zone == zone_i && t.realm == realm_i)
+	      .reduce((a, t) => a + (t.allDead ? 0.000005 : t.loadingFailed ? 0.005 : t.estimateRefineTimes()), 0)));
 	let reachedCounts = realms
 	  .filter(r => !r.locked || r.name == "Core Realm")
 	  .map((r, realm_i) => zones
 	    .filter(z => z.mapLocations.flat().length)
 	    .map((z, zone_i) =>
-		  z.mapLocations.flat().filter(l => l.type.name == "Mana-infused Rock").length !=
-		  routes.filter(t => t.zone == zone_i && t.realm == realm_i).length));
-	const header = document.querySelector("#grind-stats-header");
-	const body = document.querySelector("#grind-stats");
-	const footer = document.querySelector("#grind-stats-footer");
-	let rowTemplate = document.querySelector("#grind-row-template");
-	let cellTemplate = document.querySelector("#grind-cell-template");
+	      z.mapLocations.flat().filter(l => l.type.name == "Mana-infused Rock").length !=
+	      routes.filter(t => t.zone == zone_i && t.realm == realm_i).length));
+	let revisitCounts = realms
+	  .filter(r => !r.locked || r.name == "Core Realm")
+	  .map((r, realm_i) => zones
+	    .filter(z => z.mapLocations.flat().length)
+	    .map((z, zone_i) =>
+	      routes.filter(t => t.zone == zone_i && t.realm == realm_i && t.invalidateCost).length));
+	const header = document.querySelector("#grind-stats-header")!;
+	const body = document.querySelector("#grind-stats")!;
+	const footer = document.querySelector("#grind-stats-footer")!;
+	let rowTemplate = document.querySelector("#grind-row-template")!;
+	let cellTemplate = document.querySelector("#grind-cell-template")!;
 	if (!rockCounts) return;
 	while (header.firstChild){
-		header.removeChild(header.lastChild);
-		footer.removeChild(footer.lastChild);
+		header.removeChild(header.lastChild!);
+		footer.removeChild(footer.lastChild!);
 	}
-	let headerNode = cellTemplate.cloneNode(true);
+	let headerNode = cellTemplate.cloneNode(true) as HTMLElement;
 	headerNode.removeAttribute("id");
 	header.appendChild(headerNode);
-	let footerNode = cellTemplate.cloneNode(true);
+	let footerNode = cellTemplate.cloneNode(true) as HTMLElement;
 	footerNode.removeAttribute("id");
 	footerNode.innerHTML = "Total";
 	footer.appendChild(footerNode);
 	while (body.firstChild){
-		body.removeChild(body.lastChild);
+		body.removeChild(body.lastChild!);
 	}
 	for (let i = 0; i < rockCounts.length; i++){
-		let headerNode = cellTemplate.cloneNode(true);
+		let headerNode = cellTemplate.cloneNode(true) as HTMLElement;
 		headerNode.removeAttribute("id");
 		headerNode.innerHTML = realms[i].name.replace(/ Realm/, "");
 		header.appendChild(headerNode);
-		let footerNode = cellTemplate.cloneNode(true);
+		let footerNode = cellTemplate.cloneNode(true) as HTMLElement;
 		footerNode.removeAttribute("id");
-		footerNode.innerHTML = rockCounts[i].reduce((a, c) => a + Math.floor(c));
+		footerNode.innerHTML = rockCounts[i].reduce((a, c) => a + Math.floor(c)).toString();
 		footer.appendChild(footerNode);
 	}
 	for (let i = 0; i < rockCounts[0].length; i++){
-		let rowNode = rowTemplate.cloneNode(true);
+		let rowNode = rowTemplate.cloneNode(true) as HTMLElement;
 		rowNode.removeAttribute("id");
-		let cellNode = cellTemplate.cloneNode(true);
+		let cellNode = cellTemplate.cloneNode(true) as HTMLElement;
 		cellNode.removeAttribute("id");
 		cellNode.innerHTML = `z${i+1}`;
 		rowNode.appendChild(cellNode);
 		for (let j = 0; j < rockCounts.length; j++){
-			let cellNode = cellTemplate.cloneNode(true);
+			let cellNode = cellTemplate.cloneNode(true) as HTMLElement;
 			cellNode.removeAttribute("id");
-			cellNode.innerHTML = Math.floor(rockCounts[j][i]);
+			cellNode.innerHTML = Math.floor(rockCounts[j][i]).toString();
 			if (rockCounts[j][i] % 1 > 0.001){
 				cellNode.classList.add("failed");
 			}
+			if (rockCounts[j][i] * 1000 % 1 > 0.001){
+				cellNode.classList.add("drowned");
+			}
 			if (reachedCounts[j][i]){
 				cellNode.classList.add("unreached");
+			}
+			if (revisitCounts[j][i]){
+				cellNode.classList.add("revisit");
 			}
 			rowNode.appendChild(cellNode);
 		}
@@ -324,4 +326,4 @@ function updateGrindStats(){
 	}
 }
 
-let routes:  Route[] = [];
+let routes: Route[] = [];
