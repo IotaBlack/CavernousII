@@ -96,7 +96,7 @@ class Rune<runeName extends anyRuneName = anyRuneName> {
 		let desc = this.description();
 		let match = desc.match(/\{.*\}/);
 		if (match) {
-			let realmDesc = JSON.parse(match[0].replaceAll("'", '"'));
+			let realmDesc = JSON.parse(match[0].replace(/'/g, '"'));
 			desc = desc.replace(/\{.*\}/, realmDesc[currentRealm] || realmDesc[0]);
 		}
 		this.node.querySelector(".description")!.innerHTML = desc;

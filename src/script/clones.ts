@@ -241,14 +241,14 @@ class Clone {
 			// Pause game
 			return [0, null, null];
 		}
-		if (actionToDo[0] === undefined || actionToDo[0][0] === "W") {
+		if (actionToDo === undefined || actionToDo === "W") {
 			// Clone is waiting
 			return [Infinity, null, null];
 		}
-		if (actionToDo[0][0] == ".") {
+		if (actionToDo == ".") {
 			return [this.walkTime || 100, null, null];
 		}
-		if (actionToDo[0][0] == "=") {
+		if (actionToDo == "=") {
 			if (
 				!this.waiting ||
 				clones.every((c, i) => {
@@ -264,29 +264,26 @@ class Clone {
 		}
 		if (this.waiting !== false && this.waiting < queueTime - MAX_TICK) this.waiting = false;
 
-		const actionXOffset =
-			{
-				R: 1,
-				L: -1
-			}[actionToDo[0]] || 0;
-		const actionYOffset =
-			{
-				U: -1,
-				D: 1
-			}[actionToDo[0]] || 0;
+		const actionXOffset ={
+			R: 1,
+			L: -1
+		}[actionToDo] || 0;
+		const actionYOffset ={
+			U: -1,
+			D: 1
+		}[actionToDo] || 0;
 		const hasOffset = !!actionXOffset || !!actionYOffset;
 		const x = this.x + actionXOffset;
 		const y = this.y + actionYOffset;
 		const location = getMapLocation(x, y);
 		if (location === null) throw new Error("Location not found");
-		if (
-			actionToDo[0][0] == "N" &&
+		if (actionToDo[0] == "N" &&
 			runes[parseInt(actionToDo[1])].isInscribable() === false &&
 			!runesTiles.includes(zones[currentZone].map[y + zones[currentZone].yOffset][x + zones[currentZone].xOffset])
 		) {
 			return [Infinity, null, null];
 		}
-		if ("NS<+".includes(actionToDo[0][0]) || (actionToDo[0][0] == "=" && this.waiting !== true)) {
+		if ("NS<+".includes(actionToDo[0]) || (actionToDo == "=" && this.waiting !== true)) {
 			// Clone's next action is free.
 			return [0, null, null];
 		}
@@ -315,13 +312,13 @@ class Clone {
 			return time;
 		}
 		// Explicit non-action wait
-		if (actionToDo[0] === "W") {
+		if (actionToDo === "W") {
 			this.isPausing = true;
 			this.addToTimeline({ name: "Wait" }, initialTime);
 			return 0;
 		}
 		// Pause game
-		if (actionToDo[0] === ":"){
+		if (actionToDo === ":"){
 			if (settings.running) toggleRunning();
 			this.selectQueueAction(actionIndex, 100);
 			this.completeNextAction(true);
@@ -331,11 +328,11 @@ class Clone {
 		const actionXOffset = {
 			"R": 1,
 			"L": -1
-		}[actionToDo[0]] || 0;
+		}[actionToDo] || 0;
 		const actionYOffset = {
 			"U": -1,
 			"D": 1
-		}[actionToDo[0]] || 0;
+		}[actionToDo] || 0;
 		const hasOffset = !!actionXOffset || !!actionYOffset;
 
 		if (actionToDo[0][0] == "N") {
