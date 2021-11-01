@@ -228,7 +228,7 @@ function simpleRequire(requirement, doubleExcempt = false) {
             if (spend === true)
                 stuff.update(-requirement[i][1] * (requirement[i][0].match(/Armour|Sword|Shield/) ? 1 : mult));
         }
-        return true;
+        return 1;
     }
     haveEnough.itemCount = requirement.reduce((a, c) => a + c[1], 0);
     return haveEnough;
@@ -236,7 +236,7 @@ function simpleRequire(requirement, doubleExcempt = false) {
 function canMakeEquip(requirement, equipType) {
     function canDo() {
         const haveStuff = simpleRequire(requirement)();
-        if (!haveStuff)
+        if (haveStuff <= 0)
             return haveStuff;
         const itemCount = stuff.reduce((a, c) => a + (c.name === equipType ? c.count : 0), 0);
         if (itemCount >= clones.length)

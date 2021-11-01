@@ -265,7 +265,7 @@ function simpleRequire(requirement: [anyStuffName, number][], doubleExcempt = fa
 function canMakeEquip(requirement: [anyStuffName, number][], equipType: string) {
 	function canDo() {
 		const haveStuff = simpleRequire(requirement)();
-		if (!haveStuff) return haveStuff;
+		if (haveStuff <= 0) return haveStuff;
 		const itemCount = stuff.reduce((a, c) => a + (c.name === equipType ? c.count : 0), 0);
 		if (itemCount >= clones.length) return -1;
 		return 1;
