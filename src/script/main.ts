@@ -246,7 +246,7 @@ interface saveGame {
 	}[];
 }
 
-function save() {
+let save = function save() {
 	if (savingDisabled) return;
 	const playerStats = stats.map(s => {
 		return {
@@ -269,9 +269,9 @@ function save() {
 			locations: zoneLocations,
 			queues: zone.queues
 				? zone.queues.map(queue => {
-					  return queue.map(q => {
-						  return q.actionID;
-					  });
+						return queue.map(q => {
+							return q.actionID;
+						});
 				  })
 				: [[]],
 			routes: zone.routes,
@@ -281,7 +281,7 @@ function save() {
 	const cloneData = {
 		count: clones.length
 	};
-	const stored = savedQueues.map((q:any) => {
+	const stored = savedQueues.map((q: any) => {
 		return {
 			queue: q,
 			name: q.name,
@@ -328,17 +328,13 @@ function save() {
 		runeData: runeData
 	};
 	let saveString = JSON.stringify(saveGame);
-	// I can't be bothered to look up properly importing this.
-	// @ts-ignore
 	localStorage[saveName] = LZString.compressToBase64(saveString);
-}
+};
 
 function load() {
 	if (!localStorage[saveName]) return setup();
 	let saveGame: saveGame;
 	try {
-		// I can't be bothered to look up properly importing this.
-		// @ts-ignore
 		saveGame = JSON.parse(LZString.decompressFromBase64(localStorage[saveName])!);
 	} catch {
 		// Prior to 2.2.6
@@ -452,9 +448,6 @@ function importGame() {
 	if (!saveString) return;
 	save();
 	// Disable saving until the next reload.
-	// Typescript really doesn't think you should do this.
-	// Typescript is wrong.
-	// @ts-ignore
 	save = () => {};
 	const temp = localStorage[saveName];
 	localStorage[saveName] = saveString;

@@ -206,7 +206,7 @@ const URLParams = new URL(document.location.href).searchParams;
 let saveName = URLParams.get("save") || "";
 saveName = `saveGameII${saveName && "_"}${saveName}`;
 const savingDisabled = URLParams.get("saving") == "disabled";
-function save() {
+let save = function save() {
     if (savingDisabled)
         return;
     const playerStats = stats.map(s => {
@@ -286,17 +286,13 @@ function save() {
         runeData: runeData
     };
     let saveString = JSON.stringify(saveGame);
-    // I can't be bothered to look up properly importing this.
-    // @ts-ignore
     localStorage[saveName] = LZString.compressToBase64(saveString);
-}
+};
 function load() {
     if (!localStorage[saveName])
         return setup();
     let saveGame;
     try {
-        // I can't be bothered to look up properly importing this.
-        // @ts-ignore
         saveGame = JSON.parse(LZString.decompressFromBase64(localStorage[saveName]));
     }
     catch {
@@ -405,9 +401,6 @@ function importGame() {
         return;
     save();
     // Disable saving until the next reload.
-    // Typescript really doesn't think you should do this.
-    // Typescript is wrong.
-    // @ts-ignore
     save = () => { };
     const temp = localStorage[saveName];
     localStorage[saveName] = saveString;

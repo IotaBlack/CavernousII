@@ -21,9 +21,6 @@ class Action<actionName extends anyActionName = anyActionName> {
 		this.name = name;
 		this.baseDuration = baseDuration;
 		this.stats = stats.map(s => [getStat(s[0]), s[1]]);
-		// I can't make this one work.
-		// Good job, ts.
-		// @ts-ignore
 		this.complete = complete || (() => {});
 		this.canStart = canStart;
 		this.tickExtra = tickExtra;
@@ -324,9 +321,9 @@ function tickFight(usedTime: number, creature: Creature, baseTime: number) {
 	targetClones.forEach(c => c.takeDamage(damage / targetClones.length));
 }
 
-// @ts-ignore
-let combatTools: [Stuff<anyStuffName>, number, Stat<anyStatName>] = [];
-// @ts-ignore
+
+let combatTools: [Stuff<anyStuffName>, number, Stat<anyStatName>][] = [];
+
 setTimeout(() => combatTools = ([
 	["Iron Axe", 0.01, "Woodcutting"],
 	["Iron Pick", 0.01, "Mining"],
@@ -336,7 +333,6 @@ setTimeout(() => combatTools = ([
 function combatDuration() {
 	let duration = 1;
 	for (let i = 0; i < combatTools.length; i++) {
-		// @ts-ignore
 		duration *= Math.pow(combatTools[i][2].value, combatTools[i][1] * combatTools[i][0].count);
 	}
 	return duration;
